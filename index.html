@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales Register Analyzer — CA Akash Agarwal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+:root{
+  --navy:#1a2744;--navy-light:#2a3d5e;--gold:#c8a45a;--gold-light:#e8d5a0;--gold-dark:#9e7e3a;
+  --bg:#f8f6f1;--card:#fff;--text:#2c2c2c;--text-light:#6b6b6b;--border:#e5e0d5;
+  --green:#2e7d5b;--green-light:#e8f5ee;--red:#b53838;--red-light:#fce8e8;
+  --amber:#d4860a;--amber-light:#fef3e0;--blue:#2563eb;--blue-light:#eff6ff;
+  --shadow:0 2px 12px rgba(26,39,68,.08);--shadow-lg:0 8px 32px rgba(26,39,68,.12)
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#fcfaf5,#f5f0e4);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--gold);position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(200,164,90,.12)}
+.header-left h1{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:700;color:var(--navy)}
+.header-left .subtitle{font-size:.78rem;color:var(--text-light);margin-top:1px}
+.header-right{text-align:right}
+.header-right .ca-name{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:700;color:var(--navy)}
+.header-right .ca-mobile{font-size:.8rem;color:var(--gold-dark);font-weight:600;margin-top:1px}
+.header-right .firm{font-family:'Lora',serif;font-size:.78rem;color:var(--text-light);font-weight:500;margin-top:1px}
+
+/* IMPORT */
+.import-section{max-width:1400px;margin:24px auto;padding:0 24px}
+.import-card{background:var(--card);border-radius:12px;padding:28px 32px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.import-card h2{font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--navy);margin-bottom:8px}
+.import-note{font-size:.82rem;color:var(--text-light);margin-bottom:18px;line-height:1.5;background:var(--blue-light);padding:10px 14px;border-radius:6px;border-left:3px solid var(--blue)}
+.file-drop{border:2px dashed var(--border);border-radius:10px;padding:28px 24px;text-align:center;cursor:pointer;transition:all .3s;background:var(--bg);position:relative;max-width:500px}
+.file-drop:hover,.file-drop.dragover{border-color:var(--gold);background:rgba(200,164,90,.05)}
+.file-drop.loaded{border-color:var(--green);background:var(--green-light)}
+.file-drop .icon{font-size:2.5rem;margin-bottom:10px}
+.file-drop .label{font-weight:600;font-size:1rem;color:var(--navy)}
+.file-drop .hint{font-size:.73rem;color:var(--text-light);margin-top:6px}
+.file-drop .status{font-size:.75rem;color:var(--green);font-weight:600;margin-top:8px}
+.file-drop input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.analyze-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:20px}
+.btn{border:none;padding:11px 28px;border-radius:8px;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .3s;font-family:'Source Sans 3',sans-serif}
+.btn-analyze{background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:#fff}
+.btn-analyze:hover{transform:translateY(-1px);box-shadow:var(--shadow-lg)}
+.btn-analyze:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-export{background:var(--card);color:var(--navy);border:1.5px solid var(--navy)!important;padding:9px 20px;font-size:.82rem;display:none}
+.btn-export:hover{background:var(--navy);color:#fff}
+.progress-bar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;display:none}
+.progress-bar .fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-dark));border-radius:3px;width:0;transition:width .3s}
+.progress-text{font-size:.8rem;color:var(--text-light);display:none}
+.export-row{max-width:1400px;margin:0 auto 12px;padding:0 24px;display:none;gap:10px;align-items:center}
+
+/* TABS */
+.tabs-container{max-width:1400px;margin:0 auto;padding:0 24px;display:none}
+.tabs{display:flex;gap:4px;background:var(--card);border-radius:10px 10px 0 0;padding:6px 6px 0;border:1px solid var(--border);border-bottom:none;overflow-x:auto}
+.tab{padding:10px 20px;border:none;background:0 0;cursor:pointer;font-family:'Source Sans 3',sans-serif;font-size:.85rem;font-weight:500;color:var(--text-light);border-radius:8px 8px 0 0;transition:all .2s;white-space:nowrap}
+.tab:hover{color:var(--navy);background:rgba(26,39,68,.04)}
+.tab.active{background:var(--bg);color:var(--navy);font-weight:700;box-shadow:0 -2px 0 var(--gold) inset}
+.tab-content{background:var(--card);border:1px solid var(--border);border-top:2px solid var(--gold);border-radius:0 0 12px 12px;padding:28px;box-shadow:var(--shadow);margin-bottom:32px;min-height:400px}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* KPI CARDS */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px}
+.kpi{background:var(--bg);border-radius:10px;padding:16px 18px;border-left:4px solid var(--gold)}
+.kpi.green{border-left-color:var(--green)}.kpi.red{border-left-color:var(--red)}
+.kpi.blue{border-left-color:var(--blue)}.kpi.amber{border-left-color:var(--amber)}
+.kpi .kpi-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text-light);font-weight:600}
+.kpi .kpi-value{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:700;color:var(--navy);margin-top:2px}
+.kpi .kpi-sub{font-size:.72rem;color:var(--text-light);margin-top:2px}
+.kpi.clickable{cursor:pointer;transition:all .2s}
+.kpi.clickable:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
+.kpi.clickable.selected{outline:2px solid var(--gold);box-shadow:var(--shadow-lg)}
+
+/* TABLES */
+.table-wrap{overflow-x:auto;overflow-y:auto;max-height:520px;margin-top:16px;border-radius:8px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+th{background:var(--navy);color:#fff;padding:10px 12px;text-align:left;font-weight:600;position:sticky;top:0;z-index:2;white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{background:var(--navy-light)}
+td{padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+tr:hover td{background:rgba(200,164,90,.05)}
+tr.total-row td{background:#f0ecdf;font-weight:700;border-top:2px solid var(--navy);position:sticky;bottom:0;z-index:1}
+tr.highlight-row td{background:rgba(181,56,56,.06)}
+tr.clickable-row{cursor:pointer}
+tr.clickable-row:hover td{background:rgba(200,164,90,.12)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+
+/* BADGES & TAGS */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.72rem;font-weight:600}
+.badge-red{background:var(--red-light);color:var(--red)}
+.badge-green{background:var(--green-light);color:var(--green)}
+.badge-amber{background:var(--amber-light);color:var(--amber)}
+.badge-blue{background:var(--blue-light);color:var(--blue)}
+.below-avg{color:var(--red);font-weight:700}
+.above-avg{color:var(--green);font-weight:600}
+
+/* SECTION TITLES */
+.section-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:var(--navy);font-weight:600;margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.section-title:first-child{margin-top:0}
+.section-note{font-size:.78rem;color:var(--text-light);margin-top:4px;margin-bottom:12px;font-style:italic}
+
+/* FILTERS */
+.filter-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.filter-row label{font-size:.8rem;font-weight:600;color:var(--navy)}
+.filter-row select,.filter-row input{padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-family:'Source Sans 3',sans-serif;font-size:.82rem;background:#fff}
+.btn-sm{padding:6px 16px;font-size:.82rem;background:var(--navy);color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:'Source Sans 3',sans-serif;font-weight:600}
+.btn-sm:hover{background:var(--navy-light)}
+.btn-sm.clear{background:var(--border);color:var(--text)}
+.btn-sm.gold{background:var(--gold-dark);color:#fff}
+.toggle-btn{padding:6px 14px;font-size:.8rem;border:1.5px solid var(--border);background:var(--card);border-radius:6px;cursor:pointer;font-family:'Source Sans 3',sans-serif;font-weight:500;color:var(--text-light);transition:all .2s}
+.toggle-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+/* CHARTS */
+.chart-box{background:var(--bg);border-radius:10px;padding:16px;border:1px solid var(--border);margin-top:12px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.bar-label{width:150px;font-size:.72rem;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.bar-track{flex:1;height:20px;background:var(--border);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;display:flex;align-items:center;padding-left:6px;font-size:.65rem;color:#fff;font-weight:600;min-width:fit-content}
+.bar-fill.navy{background:var(--navy)}.bar-fill.gold{background:var(--gold-dark)}
+.bar-fill.green{background:var(--green)}.bar-fill.red{background:var(--red)}
+.bar-fill.amber{background:var(--amber)}
+
+/* MISC */
+.search-box{padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;width:280px;font-family:'Source Sans 3',sans-serif}
+.search-box:focus{outline:none;border-color:var(--gold)}
+.detail-box{background:var(--bg);border:1px solid var(--gold-light);border-radius:8px;padding:16px;margin-bottom:16px}
+.detail-box h4{font-family:'Lora',serif;color:var(--navy);margin-bottom:8px}
+.filter-summary{display:inline-flex;align-items:center;gap:8px;background:var(--amber-light);padding:6px 14px;border-radius:6px;font-size:.82rem;font-weight:600;color:var(--amber);margin-bottom:12px}
+.insight-box{background:linear-gradient(135deg,#fff8e8,#fff3d0);border:1px solid var(--gold-light);border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:.82rem;line-height:1.7}
+.insight-box strong{color:var(--navy)}
+.footer{text-align:center;padding:20px;font-size:.75rem;color:var(--text-light);border-top:1px solid var(--border);margin-top:32px;background:var(--card)}
+.footer .firm-name{font-family:'Lora',serif;font-weight:600;color:var(--navy);font-size:.85rem}
+@media(max-width:768px){.kpi-row{grid-template-columns:repeat(2,1fr)}.header{flex-direction:column;gap:8px;text-align:center}}
+@media print{
+  *{color:#000!important;background:#fff!important}
+  body{background:#fff;font-size:10pt;line-height:1.4}
+  .header{position:static;page-break-after:avoid;padding:12px 16px;border-bottom:2px solid #000}
+  .header h1{font-size:1.2rem;margin:0}
+  .import-section,.export-row,.tabs{display:none!important}
+  .tab-content{box-shadow:none;border:1px solid #999;page-break-inside:avoid;margin-bottom:12px;padding:12px}
+  .tab-panel{display:block!important;page-break-inside:avoid;margin-bottom:16px}
+  .section-title{font-size:12pt;font-weight:700;margin:8px 0 6px;padding-bottom:4px;border-bottom:1.5px solid #000;page-break-after:avoid}
+  .kpi-row{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+  .kpi{border-left:3px solid #000;padding:8px 10px;font-size:9pt}
+  .kpi-value{font-size:1.2rem;margin-top:2px}
+  .table-wrap{overflow:visible;max-height:none;margin:8px 0}
+  table{width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:8px}
+  th{background:#1a2744;color:#fff;padding:6px 8px;text-align:left;font-weight:700;border:1px solid #000;page-break-inside:avoid}
+  td{padding:5px 8px;border:1px solid #999;white-space:normal}
+  tr:hover td{background:#fff}
+  tr.total-row td{background:#ddd;font-weight:700;border-top:2px solid #000}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .bar-row{margin:6px 0;page-break-inside:avoid}
+  .bar-label{font-size:9pt;font-weight:600;margin-bottom:2px}
+  .bar-track{height:20px;background:#eee;border:1px solid #999}
+  .bar-fill{padding:2px 4px;color:#fff;font-size:8pt;display:flex;align-items:center}
+  .insight-box{background:#f9f9f9;border:1px solid #999;padding:8px;margin:8px 0;font-size:9pt;page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>📊 Sales Register Analyzer</h1>
+    <div class="subtitle">Weekly Intelligence · Product Rate Analysis · Below-Average Buyer Detection</div>
+  </div>
+  <div class="header-right">
+    <div class="ca-name">CA Akash Agarwal</div>
+    <div class="ca-mobile">✆ 8799999935</div>
+    <div class="firm">Maars & Associates, Chartered Accountants</div>
+  </div>
+</div>
+
+<div class="import-section">
+  <div class="import-card">
+    <h2>📂 Import Sales Register</h2>
+    <div class="import-note">
+      <strong>Supported Formats:</strong> &nbsp;
+      <strong>Format A</strong> (Tally Standard): <em>Date, Units, Invoice No, Party Name, Item Name, Quantity, UOM, Per Unit, Value</em> &nbsp;|&nbsp;
+      <strong>Format B</strong> (Merged/Custom): <em>invoice_date, UNIT, party_name, product_name, quantity, uom, line_taxable_value</em><br>
+      The tool auto-detects the format. Both single-unit and multi-unit exports are supported.
+    </div>
+    <div class="file-drop" id="dropSales">
+      <div class="icon">📊</div>
+      <div class="label">Drop Sales Register Excel Here</div>
+      <div class="hint">or click to browse — .xlsx / .xls / .csv accepted</div>
+      <div class="status" id="statusSales"></div>
+      <input type="file" accept=".xlsx,.xls,.csv" onchange="handleFile(event)">
+    </div>
+    <div class="analyze-row">
+      <button class="btn btn-analyze" id="btnAnalyze" onclick="runAnalysis()" disabled>▶ Analyse Sales</button>
+      <div class="progress-bar" id="pBar"><div class="fill" id="pFill"></div></div>
+      <div class="progress-text" id="pText"></div>
+    </div>
+  </div>
+</div>
+
+<div class="export-row" id="exportRow">
+  <span style="font-size:.82rem;color:var(--text-light);font-weight:500">Export:</span>
+  <button class="btn btn-export" onclick="exportXL()" style="display:inline-flex;align-items:center;gap:6px">📥 Full Analysis (7 Sheets)</button>
+  <button class="btn btn-export" onclick="exportRateReport()" style="display:inline-flex;align-items:center;gap:6px">📈 Rate Analysis Report</button>
+  <button class="btn btn-export" onclick="window.print()" style="display:inline-flex;align-items:center;gap:6px">📄 PDF / Print</button>
+</div>
+
+<div class="tabs-container" id="tabsC">
+  <div class="tabs" id="tabsNav"></div>
+  <div class="tab-content" id="tabContent"></div>
+</div>
+
+<div class="footer">
+  <div class="firm-name">Maars & Associates, Chartered Accountants</div>
+  <div>CA Akash Agarwal | ✆ 8799999935 | Sales Register Analyzer</div>
+</div>
+
+<script>
+// ===== UTILITIES =====
+const fmt=n=>{if(n==null||isNaN(n))return'—';const a=Math.abs(n),s=n<0?'-':'';if(a>=1e7)return s+'₹'+(a/1e7).toFixed(2)+' Cr';if(a>=1e5)return s+'₹'+(a/1e5).toFixed(2)+' L';return'₹'+Math.round(n).toLocaleString('en-IN')};
+const fN=n=>(n==null||isNaN(n))?'—':n>=1000?Math.round(n).toLocaleString('en-IN'):typeof n==='number'?n.toFixed(2).replace(/\.?0+$/,''):n;
+const fNInt=n=>(n==null||isNaN(n))?'—':Math.round(n).toLocaleString('en-IN');
+const pc=n=>(n==null||isNaN(n))?'—':n.toFixed(1)+'%';
+const fRate=n=>n==null||isNaN(n)?'—':'₹'+n.toFixed(2);
+const clnP=s=>s?String(s).replace(/_x000D_\\n|_x000D_|\r|\n/g,'').trim():'';
+const normP=s=>{let r=clnP(s).toUpperCase().replace(/\.+$/,'');return r.replace(/\s+/g,' ').trim()};
+const MONTH_NAMES=['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+const mI=d=>{const m=d.getMonth();return m>=3?m-3:m+9};
+const mName=m=>MONTH_NAMES[m]||'?';
+
+let _raw=null, _C={}, _trendMode='weekly';
+
+// ===== FILE HANDLING =====
+function handleFile(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader;
+  r.onload=ev=>{_raw=ev.target.result;
+    document.getElementById('dropSales').classList.add('loaded');
+    document.getElementById('statusSales').textContent='✓ '+f.name+' ('+Math.round(f.size/1024)+'KB)';
+    document.getElementById('btnAnalyze').disabled=false};
+  r.readAsArrayBuffer(f);
+}
+function setProg(p,t){
+  document.getElementById('pBar').style.display='block';
+  document.getElementById('pText').style.display='block';
+  document.getElementById('pFill').style.width=p+'%';
+  document.getElementById('pText').textContent=t;
+}
+
+// ===== DUAL-FORMAT PARSER =====
+function parseSales(d){
+  const wb=XLSX.read(d,{type:'array',cellDates:true});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,cellDates:true});
+
+  // Find header row
+  let hi=0;
+  for(let i=0;i<Math.min(rows.length,8);i++){
+    if(rows[i]&&rows[i].some(c=>String(c||'').toLowerCase().match(/invoice|party|product/)))
+    {hi=i;break}
+  }
+  const h=rows[hi].map(x=>String(x||'').trim().toLowerCase().replace(/[_\s]+/g,'_'));
+
+  // Detect format
+  // Format B: invoice_date, unit, party_name, product_name, quantity, uom, line_taxable_value
+  // Format A: date, units, invoice_no, party_name, item_name, quantity, uom, per_unit, value
+  const isFormatB=h.some(x=>x==='invoice_date')||h.some(x=>x==='product_name')||h.some(x=>x==='line_taxable_value');
+
+  let ci;
+  if(isFormatB){
+    ci={
+      d: h.findIndex(x=>x==='invoice_date'||x==='date'),
+      u: h.findIndex(x=>x==='unit'),
+      i: -1, // no invoice number in format B — generate from row
+      p: h.findIndex(x=>x==='party_name'),
+      it: h.findIndex(x=>x==='product_name'),
+      q: h.findIndex(x=>x==='quantity'),
+      um: h.findIndex(x=>x==='uom'),
+      r: -1, // no per-unit rate — compute from value/qty
+      v: h.findIndex(x=>x==='line_taxable_value'||x==='taxable_value'||x==='value')
+    };
+  } else {
+    ci={
+      d: h.findIndex(x=>/date/.test(x)),
+      u: h.findIndex(x=>/unit/.test(x)),
+      i: h.findIndex(x=>/invoice/.test(x)),
+      p: h.findIndex(x=>/party/.test(x)),
+      it: h.findIndex(x=>/item/.test(x)),
+      q: h.findIndex(x=>/quant/.test(x)),
+      um: h.findIndex(x=>/uom/.test(x)),
+      r: h.findIndex(x=>/per_unit/.test(x)),
+      v: h.findIndex(x=>x==='value')
+    };
+  }
+
+  const res=[];
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i];
+    if(!r||r.every(x=>!x))continue;
+
+    // Value
+    let v=0,canc=false;
+    const rv=ci.v>=0?r[ci.v]:null;
+    if(typeof rv==='number')v=rv;
+    else if(typeof rv==='string'){const p=parseFloat(rv.replace(/,/g,''));if(!isNaN(p))v=p;else canc=true}
+    else if(rv==null)continue;
+
+    // Date
+    let dt=null;
+    if(ci.d>=0&&r[ci.d]){
+      if(r[ci.d] instanceof Date)dt=r[ci.d];
+      else{dt=new Date(r[ci.d]);if(isNaN(dt.getTime()))dt=null}
+    }
+
+    const item=String(r[ci.it]||'').trim();
+    if(!item)continue;
+    if(/\(cancelled\s*\)/i.test(item))canc=true;
+
+    const qty=typeof r[ci.q]==='number'?r[ci.q]:parseFloat(r[ci.q])||0;
+    const uom=String(r[ci.um]||'').trim();
+    const unit=ci.u>=0?String(r[ci.u]||'').trim():'';
+    const party=clnP(r[ci.p]);
+    const invNo=ci.i>=0&&r[ci.i]?String(r[ci.i]).trim():('ROW-'+i);
+    // Computed rate: if per_unit exists use it, else compute
+    let rate=0;
+    if(ci.r>=0&&r[ci.r])rate=typeof r[ci.r]==='number'?r[ci.r]:parseFloat(r[ci.r])||0;
+    else if(qty>0)rate=v/qty;
+
+    res.push({date:dt,unit,invoice:invNo,party:clnP(party),partyNorm:normP(party),item,qty,uom,rate,value:v,cancelled:canc,isFormatB});
+  }
+  return res;
+}
+
+// ===== ANALYSIS ENGINE =====
+function runAnalysis(){
+  setProg(10,'Parsing file...');
+  setTimeout(()=>{
+    const S=parseSales(_raw);
+    setProg(60,'Computing analytics...');
+    setTimeout(()=>{
+      compute(S);
+      setProg(100,'Done!');
+      document.getElementById('exportRow').style.display='flex';
+      document.querySelectorAll('.btn-export').forEach(b=>b.style.display='inline-flex');
+      setTimeout(()=>{document.getElementById('pBar').style.display='none';document.getElementById('pText').style.display='none'},1200);
+    },100);
+  },100);
+}
+
+function getISOWeek(d){const jan4=new Date(d.getFullYear(),0,4);const dayOfYear=Math.floor((d-new Date(d.getFullYear(),0,0))/(1000*60*60*24));const weekOfYear=Math.ceil((d.getDay()+1+dayOfYear-1)/7);return weekOfYear}
+
+function compute(S){
+  const totalRows=S.length;
+  const totalSales=S.reduce((s,r)=>s+r.value,0);
+  const grossSales=S.filter(r=>r.value>0).reduce((s,r)=>s+r.value,0);
+  const totalReturns=Math.abs(S.filter(r=>r.value<0).reduce((s,r)=>s+r.value,0));
+  const negCount=S.filter(r=>r.value<0).length;
+
+  // Party normalization
+  const pCanon={};
+  S.forEach(r=>{if(r.party&&!pCanon[r.partyNorm])pCanon[r.partyNorm]=r.party});
+  const uPC=Object.keys(pCanon).length;
+
+  // Party-wise aggregation
+  const pMap={};
+  S.forEach(r=>{
+    const k=r.partyNorm;
+    if(!pMap[k])pMap[k]={name:pCanon[k]||r.party,sales:0,inv:new Set,items:new Set,returns:0,qty:0};
+    if(r.value>=0){pMap[k].sales+=r.value;pMap[k].qty+=r.qty;}
+    else pMap[k].returns+=Math.abs(r.value);
+    pMap[k].inv.add(r.invoice);
+    if(r.item&&!r.cancelled)pMap[k].items.add(r.item);
+  });
+  const pList=Object.values(pMap).map(d=>({name:d.name,sales:d.sales,returns:d.returns,net:d.sales-d.returns,invCount:d.inv.size,itemCount:d.items.size,qty:d.qty})).sort((a,b)=>b.net-a.net);
+
+  // Party-product detail map
+  const ppMap={};
+  S.filter(r=>!r.cancelled&&r.value!==0).forEach(r=>{
+    const k=r.partyNorm;
+    if(!ppMap[k])ppMap[k]=[];
+    ppMap[k].push(r);
+  });
+
+  // Product-wise aggregation with avg rate per UOM
+  const iMap={};
+  S.filter(r=>!r.cancelled&&r.qty>0&&r.value>0).forEach(r=>{
+    const key=r.item+'|||'+r.uom; // unique key by product+uom
+    if(!iMap[key])iMap[key]={name:r.item,uom:r.uom,sales:0,qty:0,inv:new Set,parties:{}};
+    iMap[key].sales+=r.value;
+    iMap[key].qty+=r.qty;
+    iMap[key].inv.add(r.invoice);
+    const pk=r.partyNorm;
+    if(!iMap[key].parties[pk])iMap[key].parties[pk]={name:pCanon[pk]||r.party,v:0,q:0};
+    iMap[key].parties[pk].v+=r.value;
+    iMap[key].parties[pk].q+=r.qty;
+  });
+  const iList=Object.values(iMap).map(d=>({
+    name:d.name,uom:d.uom,sales:d.sales,qty:d.qty,invCount:d.inv.size,
+    avgRate:d.qty>0?d.sales/d.qty:0,
+    parties:d.parties
+  })).filter(r=>r.sales>0).sort((a,b)=>b.sales-a.sales);
+
+  // Unit-wise
+  const uMap={};
+  S.forEach(r=>{
+    const u=r.unit||'?';
+    if(!uMap[u])uMap[u]={s:0,inv:new Set,p:new Set,qty:0};
+    uMap[u].s+=r.value;uMap[u].inv.add(r.invoice);uMap[u].p.add(r.partyNorm);uMap[u].qty+=r.qty;
+  });
+
+  // WEEKLY trend — weeks relative to dataset's own first date (not calendar Monday)
+  // This prevents "week starting Mar 30" when data starts Apr 1
+  const validDatesForWeek=S.filter(r=>r.date).map(r=>r.date.getTime());
+  const dataMinTime=validDatesForWeek.length?Math.min(...validDatesForWeek):null;
+  const dataMinDate=dataMinTime?new Date(dataMinTime):null;
+  const wkMap={};
+  if(dataMinDate){
+    // Normalize dataMinDate to start of day to avoid time-zone issues
+    const normMinDate=new Date(dataMinDate.getFullYear(),dataMinDate.getMonth(),dataMinDate.getDate());
+    S.forEach(r=>{
+      if(!r.date)return;
+      const normDate=new Date(r.date.getFullYear(),r.date.getMonth(),r.date.getDate());
+      const deltaDays=Math.floor((normDate-normMinDate)/(1000*60*60*24));
+      const weekNum=Math.floor(deltaDays/7); // 0-indexed
+      const weekStartDate=new Date(normMinDate.getTime()+weekNum*7*24*60*60*1000);
+      const wk='W'+(weekNum+1)+'|'+weekStartDate.toISOString().slice(0,10);
+      if(!wkMap[wk])wkMap[wk]={s:0,txns:0,label:'',weekStart:weekStartDate,weekNum:weekNum+1};
+      wkMap[wk].s+=r.value;wkMap[wk].txns++;
+    });
+    // Label weeks
+    const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    Object.keys(wkMap).forEach(k=>{
+      const d=wkMap[k].weekStart;
+      const endDate=new Date(d.getTime()+6*24*60*60*1000);
+      wkMap[k].label=`W${wkMap[k].weekNum} (${d.getDate()} ${MO[d.getMonth()]}–${endDate.getDate()} ${MO[endDate.getMonth()]})`;
+    });
+  }
+
+  // MONTHLY trend
+  const moMap={};
+  S.forEach(r=>{
+    if(!r.date)return;
+    const mi=mI(r.date);
+    if(!moMap[mi])moMap[mi]={s:0,txns:0};
+    moMap[mi].s+=r.value;moMap[mi].txns++;
+  });
+
+  // Date range for display
+  const validDates=S.filter(r=>r.date).map(r=>r.date);
+  const minDate=validDates.length?new Date(Math.min(...validDates)):null;
+  const maxDate=validDates.length?new Date(Math.max(...validDates)):null;
+  const dateRangeStr=minDate&&maxDate?`${minDate.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][minDate.getMonth()]} ${minDate.getFullYear()} — ${maxDate.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][maxDate.getMonth()]} ${maxDate.getFullYear()}`:'';
+
+  // Concentration
+  const top5=pList.slice(0,5).reduce((s,p)=>s+p.net,0);
+  const top10=pList.slice(0,10).reduce((s,p)=>s+p.net,0);
+  const top20=pList.slice(0,20).reduce((s,p)=>s+p.net,0);
+  const oneTime=pList.filter(p=>p.invCount===1);
+
+  // Below-average buyer detection per product+UOM
+  const belowAvgMap={}; // partyNorm -> [{product, uom, partyRate, groupRate, deficit%}]
+  iList.forEach(prod=>{
+    if(prod.avgRate<=0||prod.qty<10)return; // skip if trivial qty
+    Object.entries(prod.parties).forEach(([pk,pd])=>{
+      if(pd.q<5)return; // skip tiny purchases
+      const partyRate=pd.q>0?pd.v/pd.q:0;
+      const pctVsGroup=(partyRate-prod.avgRate)/prod.avgRate*100;
+      if(pctVsGroup<-2){ // more than 2% below group avg
+        if(!belowAvgMap[pk])belowAvgMap[pk]={name:pCanon[pk]||pk,items:[]};
+        belowAvgMap[pk].items.push({product:prod.name,uom:prod.uom,partyRate,groupRate:prod.avgRate,pctVsGroup,qty:pd.q,value:pd.v});
+      }
+    });
+  });
+  const belowAvgParties=Object.values(belowAvgMap).sort((a,b)=>{
+    const aWorst=Math.min(...a.items.map(x=>x.pctVsGroup));
+    const bWorst=Math.min(...b.items.map(x=>x.pctVsGroup));
+    return aWorst-bWorst;
+  });
+
+  // Store raw rows for Full Sales Register export
+  window._rawRows=S;
+
+  // Store globally
+  _C={totalSales,grossSales,totalReturns,totalRows,uPC,negCount,pList,iList,wkMap,moMap,uMap,belowAvgParties,dateRangeStr,top5,top10,top20,oneTime,rows:S};
+  window._ppMap=ppMap;window._pList=pList;window._pCanon=pCanon;window._iList=iList;window._belowAvgParties=belowAvgParties;
+
+  buildTabs();
+  renderSummary();
+  renderFullRegister();
+  renderSalesTab();
+  renderRateTab();
+  renderReturnsTab();
+  document.getElementById('tabsC').scrollIntoView({behavior:'smooth'});
+}
+
+// ===== BUILD TABS =====
+function buildTabs(){
+  const tabs=[
+    {id:'summary',label:'📊 Summary'},
+    {id:'register',label:'📋 Full Sales Register'},
+    {id:'sales',label:'💰 Sales Analysis'},
+    {id:'rates',label:'📈 Rate Intelligence'},
+    {id:'returns',label:'↩️ Returns'}
+  ];
+  const tn=document.getElementById('tabsNav'),tc=document.getElementById('tabContent');
+  tn.innerHTML='';tc.innerHTML='';
+  tabs.forEach((t,i)=>{
+    const b=document.createElement('button');b.className='tab'+(i===0?' active':'');b.textContent=t.label;
+    b.onclick=()=>{tn.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');tc.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));document.getElementById('pnl-'+t.id).classList.add('active')};
+    tn.appendChild(b);
+    const p=document.createElement('div');p.className='tab-panel'+(i===0?' active':'');p.id='pnl-'+t.id;tc.appendChild(p);
+  });
+  document.getElementById('tabsC').style.display='block';
+}
+
+// ===== SUMMARY TAB =====
+function renderSummary(){
+  const C=_C;
+  let sh=`<div class="section-title">Sales Summary ${C.dateRangeStr?'<span style="font-size:.85rem;font-weight:400;color:var(--text-light)">· '+C.dateRangeStr+'</span>':''}</div>`;
+  sh+=`<div class="kpi-row">
+  <div class="kpi"><div class="kpi-label">Total Sales (Net)</div><div class="kpi-value">${fmt(C.totalSales)}</div><div class="kpi-sub">${fNInt(C.totalRows)} line items incl. ${C.negCount} returns · ${fNInt(C.uPC)} parties</div></div>
+  <div class="kpi green"><div class="kpi-label">Gross Sales</div><div class="kpi-value">${fmt(C.grossSales)}</div><div class="kpi-sub">Before credit notes / returns</div></div>
+  <div class="kpi red"><div class="kpi-label">Returns / Credit Notes</div><div class="kpi-value">${fmt(C.totalReturns)}</div><div class="kpi-sub">${pc(C.grossSales>0?C.totalReturns/C.grossSales*100:0)} of gross sales</div></div>
+  <div class="kpi amber"><div class="kpi-label">One-Time Buyers</div><div class="kpi-value">${C.oneTime.length}</div><div class="kpi-sub">${pc(C.oneTime.length/C.pList.length*100)} of all parties · retention opportunity</div></div></div>`;
+
+  // Trend with toggle
+  sh+=`<div class="section-title">Sales Trend
+    <span style="margin-left:16px">
+      <button class="toggle-btn ${_trendMode==='weekly'?'active':''}" onclick="setTrend('weekly')">Weekly</button>
+      <button class="toggle-btn ${_trendMode==='monthly'?'active':''}" onclick="setTrend('monthly')" style="margin-left:6px">Monthly</button>
+    </span>
+  </div>`;
+  sh+=`<div id="trendChart" class="chart-box"></div>`;
+
+  // Unit-wise
+  sh+=`<div class="section-title">Unit-wise Sales</div><div class="table-wrap"><table>
+  <tr><th>Unit</th><th class="num">Sales</th><th class="num">Entries</th><th class="num">Parties</th><th class="num">% Share</th></tr>`;
+  Object.entries(C.uMap).sort((a,b)=>b[1].s-a[1].s).forEach(([u,d])=>{
+    sh+=`<tr><td>${u}</td><td class="num">${fmt(d.s)}</td><td class="num">${fNInt(d.inv.size)}</td><td class="num">${fNInt(d.p.size)}</td><td class="num">${pc(d.s/C.totalSales*100)}</td></tr>`;
+  });
+  sh+=`<tr class="total-row"><td>Total</td><td class="num">${fmt(C.totalSales)}</td><td class="num">${fNInt(C.totalRows)}</td><td class="num">${fNInt(C.uPC)}</td><td class="num">100.0%</td></tr>`;
+  sh+=`</table></div>`;
+
+  // Top 25 chart
+  sh+=`<div class="section-title">Top 25 Customers by Net Sales</div><div class="chart-box">`;
+  const mp=C.pList[0]?.net||1;
+  C.pList.slice(0,25).forEach(p=>{
+    const w=Math.max(p.net/mp*100,3);
+    sh+=`<div class="bar-row"><div class="bar-label" title="${p.name}">${p.name.substring(0,22)}</div><div class="bar-track"><div class="bar-fill gold" style="width:${w}%">&nbsp;${fmt(p.net)}</div></div></div>`;
+  });
+  sh+=`</div>`;
+
+  // Below-avg alert
+  if(_C.belowAvgParties.length){
+    sh+=`<div class="section-title">⚠️ Rate Discount Alert</div>
+    <div class="insight-box">📉 <strong>${_C.belowAvgParties.length} parties</strong> are being billed at rates below the product group average (by more than 2%). This represents potential under-realisation. See <strong>Rate Intelligence</strong> tab for full analysis.</div>`;
+  }
+
+  document.getElementById('pnl-summary').innerHTML=sh;
+  renderTrendChart();
+}
+
+function renderTrendChart(){
+  const C=_C;const el=document.getElementById('trendChart');if(!el)return;
+  if(_trendMode==='weekly'){
+    const keys=Object.keys(C.wkMap).sort((a,b)=>{const an=parseInt(a.split('|')[0].replace('W',''));const bn=parseInt(b.split('|')[0].replace('W',''));return an-bn;});
+    const max=Math.max(...keys.map(k=>C.wkMap[k].s),1);
+    el.innerHTML=keys.map(k=>{const d=C.wkMap[k];const w=Math.max(d.s/max*100,3);
+      return `<div class="bar-row"><div class="bar-label">${d.label}</div><div class="bar-track"><div class="bar-fill navy" style="width:${w}%">&nbsp;${fmt(d.s)}</div></div></div>`}).join('');
+  } else {
+    const moKeys=Object.keys(C.moMap).map(Number).sort((a,b)=>a-b);const max=Math.max(...moKeys.map(k=>C.moMap[k].s),1);
+    el.innerHTML=moKeys.map(mi=>{const d=C.moMap[mi];const w=Math.max(d.s/max*100,3);
+      return `<div class="bar-row"><div class="bar-label">${mName(mi)}</div><div class="bar-track"><div class="bar-fill navy" style="width:${w}%">&nbsp;${fmt(d.s)}</div></div></div>`}).join('');
+  }
+}
+
+function setTrend(mode){
+  _trendMode=mode;
+  // Re-render summary section
+  renderSummary();
+}
+
+// ===== FULL SALES REGISTER TAB =====
+function renderFullRegister(){
+  const C=_C;
+  let fr=`<div class="section-title">Full Sales Register — All line items</div>`;
+  fr+=`<div class="table-wrap"><table id="fullRegTbl">
+  <tr><th onclick="sortT('fullRegTbl',0)">Date</th><th onclick="sortT('fullRegTbl',1)">Unit</th><th onclick="sortT('fullRegTbl',2)">Invoice No.</th><th onclick="sortT('fullRegTbl',3)">Party Name</th><th onclick="sortT('fullRegTbl',4)">Product</th><th class="num" onclick="sortT('fullRegTbl',5)">Qty</th><th onclick="sortT('fullRegTbl',6)">UOM</th><th class="num" onclick="sortT('fullRegTbl',7)">Rate</th><th class="num" onclick="sortT('fullRegTbl',8)">Value</th></tr>`;
+  _C.rows.forEach(r=>{
+    const dt=r.date?r.date.toLocaleDateString('en-IN'):'';
+    const inv=r.invoice||'—';
+    const rate=r.value!==0&&r.qty>0?fRate(r.value/r.qty):'—';
+    fr+=`<tr><td>${dt}</td><td>${r.unit||'—'}</td><td><strong>${inv}</strong></td><td>${r.party}</td><td>${r.item}</td><td class="num">${fNInt(r.qty)}</td><td>${r.uom}</td><td class="num">${rate}</td><td class="num">${fmt(r.value)}</td></tr>`;
+  });
+  fr+=`<tr class="total-row"><td colspan="5">Total (${_C.rows.length} entries)</td><td class="num">${fNInt(_C.rows.reduce((s,r)=>s+r.qty,0))}</td><td></td><td></td><td class="num">${fmt(C.totalSales)}</td></tr>`;
+  fr+=`</table></div>`;
+  document.getElementById('pnl-register').innerHTML=fr;
+}
+
+// ===== SALES ANALYSIS TAB =====
+function renderSalesTab(){
+  const C=_C;
+  let sa=`<div class="section-title">Product-wise Revenue — Click any row for buyer detail</div>`;
+  sa+=`<div class="table-wrap"><table id="itemTbl">
+  <tr><th onclick="sortT('itemTbl',0)">Product</th><th>UOM</th><th class="num" onclick="sortT('itemTbl',2)">Revenue</th><th class="num" onclick="sortT('itemTbl',3)">Qty</th><th class="num">Avg Rate</th><th class="num">Entries</th><th class="num">% Share</th></tr>`;
+  C.iList.slice(0,30).forEach((it,idx)=>{
+    sa+=`<tr class="clickable-row" onclick="showItemParties(${idx})"><td>${it.name}</td><td>${it.uom}</td><td class="num">${fmt(it.sales)}</td><td class="num">${fNInt(it.qty)}</td><td class="num">${fRate(it.avgRate)}</td><td class="num">${it.invCount}</td><td class="num">${pc(it.sales/C.totalSales*100)}</td></tr>`;
+  });
+  const t30s=C.iList.slice(0,30).reduce((s,i)=>s+i.sales,0);
+  const tAs=C.iList.reduce((s,i)=>s+i.sales,0);
+  sa+=`<tr class="total-row"><td>Top 30 Subtotal</td><td></td><td class="num">${fmt(t30s)}</td><td class="num"></td><td></td><td></td><td class="num">${pc(t30s/C.totalSales*100)}</td></tr>`;
+  sa+=`<tr class="total-row"><td>Grand Total (All Products)</td><td></td><td class="num">${fmt(tAs)}</td><td class="num"></td><td></td><td></td><td class="num">100%</td></tr>`;
+  sa+=`</table></div><div id="itemDetail"></div>`;
+
+  // Concentration
+  sa+=`<div class="section-title">Customer Concentration — Click to filter</div>
+  <div class="kpi-row" id="concK">
+  <div class="kpi clickable" data-c="top5" onclick="fConc('top5')"><div class="kpi-label">Top 5 Customers</div><div class="kpi-value">${pc(C.top5/C.totalSales*100)}</div><div class="kpi-sub">${fmt(C.top5)} — Click to view</div></div>
+  <div class="kpi clickable" data-c="top10" onclick="fConc('top10')"><div class="kpi-label">Top 10 Customers</div><div class="kpi-value">${pc(C.top10/C.totalSales*100)}</div><div class="kpi-sub">${fmt(C.top10)} — Click to view</div></div>
+  <div class="kpi clickable" data-c="top20" onclick="fConc('top20')"><div class="kpi-label">Top 20 Customers</div><div class="kpi-value">${pc(C.top20/C.totalSales*100)}</div><div class="kpi-sub">${fmt(C.top20)} — Click to view</div></div>
+  <div class="kpi clickable amber" data-c="onetime" onclick="fConc('onetime')"><div class="kpi-label">One-Time Buyers</div><div class="kpi-value">${C.oneTime.length} / ${C.pList.length}</div><div class="kpi-sub">${pc(C.oneTime.length/C.pList.length*100)} — Click to view</div></div></div>`;
+  sa+=`<div id="concDetail"></div>`;
+
+  // Party search
+  sa+=`<div class="section-title">Party-wise Sales</div>
+  <div class="filter-row"><label>Search Party:</label><input type="text" class="search-box" id="sSearch" placeholder="Type name + Enter" onkeydown="if(event.key==='Enter')doPS()"><button class="btn-sm" onclick="doPS()">🔍 Search</button><button class="btn-sm clear" onclick="clrPS()">✕ Clear</button></div>
+  <div id="ppDetail"></div>`;
+
+  sa+=`<div class="table-wrap"><table id="sPTbl">
+  <tr><th onclick="sortT('sPTbl',0)">Party</th><th class="num" onclick="sortT('sPTbl',1)">Gross Sales</th><th class="num" onclick="sortT('sPTbl',2)">Returns</th><th class="num" onclick="sortT('sPTbl',3)">Net Sales</th><th class="num">Invoices</th><th class="num">Products</th></tr>`;
+  C.pList.forEach(p=>{
+    sa+=`<tr class="p-row"><td>${p.name}</td><td class="num">${fmt(p.sales)}</td><td class="num">${p.returns>0?fmt(p.returns):'—'}</td><td class="num">${fmt(p.net)}</td><td class="num">${p.invCount}</td><td class="num">${p.itemCount}</td></tr>`;
+  });
+  sa+=`<tr class="total-row"><td>Total (${C.pList.length} parties)</td><td class="num">${fmt(C.pList.reduce((s,p)=>s+p.sales,0))}</td><td class="num">${fmt(C.pList.reduce((s,p)=>s+p.returns,0))}</td><td class="num">${fmt(C.totalSales)}</td><td></td><td></td></tr>`;
+  sa+=`</table></div>`;
+  document.getElementById('pnl-sales').innerHTML=sa;
+}
+
+// ===== RATE INTELLIGENCE TAB =====
+function renderRateTab(){
+  const C=_C;
+  let rt='';
+
+  // Product avg rate table
+  rt+=`<div class="section-title">Product-wise Average Selling Rate</div>
+  <div class="section-note">Average rate = Total billed value ÷ Total quantity. Only products with positive quantity sold are included. Click any row to see party-wise rate breakdown.</div>`;
+  rt+=`<div class="table-wrap"><table id="rateTbl">
+  <tr><th onclick="sortT('rateTbl',0)">Product</th><th>UOM</th><th class="num" onclick="sortT('rateTbl',2)">Avg Rate</th><th class="num" onclick="sortT('rateTbl',3)">Total Qty</th><th class="num" onclick="sortT('rateTbl',4)">Total Revenue</th><th class="num">% Share</th><th class="num">Buyers</th></tr>`;
+  C.iList.forEach((it,idx)=>{
+    rt+=`<tr class="clickable-row" onclick="showRateDetail(${idx})"><td>${it.name}</td><td>${it.uom}</td><td class="num">${fRate(it.avgRate)}</td><td class="num">${fNInt(it.qty)}</td><td class="num">${fmt(it.sales)}</td><td class="num">${pc(it.sales/C.totalSales*100)}</td><td class="num">${Object.keys(it.parties).length}</td></tr>`;
+  });
+  rt+=`</table></div><div id="rateDetail"></div>`;
+
+  // Below-avg buyer section
+  if(C.belowAvgParties.length){
+    rt+=`<div class="section-title">⚠️ Parties Buying Below Group Average Rate (>2% discount)</div>
+    <div class="section-note">These parties are being consistently billed at rates lower than the group average for the same product. This may indicate negotiated discounts, volume rebates, or potential revenue leakage that warrants review.</div>`;
+    C.belowAvgParties.forEach(p=>{
+      const worstItem=p.items.sort((a,b)=>a.pctVsGroup-b.pctVsGroup)[0];
+      rt+=`<div class="detail-box">
+      <h4>🔴 ${p.name} <span style="font-size:.78rem;font-weight:400;color:var(--text-light)">— ${p.items.length} product(s) below group avg</span></h4>
+      <div class="table-wrap" style="margin-top:8px"><table>
+      <tr><th>Product</th><th>UOM</th><th class="num">Party Rate</th><th class="num">Group Avg</th><th class="num">Difference</th><th class="num">Discount %</th><th class="num">Qty Sold</th><th class="num">Revenue</th><th class="num">Revenue at Group Avg</th><th class="num">Unrealised</th></tr>`;
+      p.items.sort((a,b)=>a.pctVsGroup-b.pctVsGroup).forEach(it=>{
+        const unrealised=it.qty*(it.groupRate-it.partyRate);
+        rt+=`<tr>
+        <td>${it.product}</td><td>${it.uom}</td>
+        <td class="num below-avg">${fRate(it.partyRate)}</td>
+        <td class="num">${fRate(it.groupRate)}</td>
+        <td class="num below-avg">-${fRate(it.groupRate-it.partyRate)}</td>
+        <td class="num"><span class="badge badge-red">${pc(Math.abs(it.pctVsGroup))}</span></td>
+        <td class="num">${fNInt(it.qty)}</td>
+        <td class="num">${fmt(it.value)}</td>
+        <td class="num">${fmt(it.qty*it.groupRate)}</td>
+        <td class="num below-avg">${fmt(unrealised)}</td>
+        </tr>`;
+      });
+      const totalUnrealised=p.items.reduce((s,it)=>s+it.qty*(it.groupRate-it.partyRate),0);
+      rt+=`<tr class="total-row"><td colspan="9" style="text-align:right">Total Unrealised (at group avg)</td><td class="num below-avg">${fmt(totalUnrealised)}</td></tr>`;
+      rt+=`</table></div></div>`;
+    });
+    // Summary
+    const totalUnrealised=C.belowAvgParties.reduce((s,p)=>s+p.items.reduce((ss,it)=>ss+it.qty*(it.groupRate-it.partyRate),0),0);
+    rt+=`<div class="insight-box">💡 <strong>Total estimated revenue gap from below-average pricing: ${fmt(totalUnrealised)}</strong>. This is calculated as: (Group Average Rate − Party Rate) × Quantity sold to each party. This is not revenue lost, but revenue that could be realised if these parties were billed at group average rates.</div>`;
+  } else {
+    rt+=`<div class="section-title">Below-Average Buyer Analysis</div><p style="color:var(--green);padding:16px">✅ All parties are being billed within 2% of the group average rate. No significant pricing disparities detected.</p>`;
+  }
+  document.getElementById('pnl-rates').innerHTML=rt;
+}
+
+function showRateDetail(idx){
+  const it=window._iList[idx];if(!it)return;
+  const parties=Object.entries(it.parties).map(([k,d])=>({name:window._pCanon[k]||k,v:d.v,q:d.q,rate:d.q>0?d.v/d.q:0})).sort((a,b)=>b.v-a.v);
+  const avgRate=it.avgRate;
+  let h=`<div class="detail-box"><h4>${it.name} (${it.uom}) — All Buyers · Group Avg Rate: <span style="color:var(--navy)">${fRate(avgRate)}</span>
+  <button class="btn-sm gold" onclick="dlRateDetail(${idx})" style="margin-left:12px;font-size:.75rem">📥 Download</button></h4>
+  <div class="table-wrap"><table>
+  <tr><th>Party</th><th class="num">Qty Sold</th><th class="num">Value</th><th class="num">Party Rate</th><th class="num">vs Group Avg</th><th>Status</th></tr>`;
+  parties.forEach(p=>{
+    const diff=p.rate-avgRate;const diffPct=avgRate>0?diff/avgRate*100:0;
+    const badge=diffPct<-2?`<span class="badge badge-red">▼ ${pc(Math.abs(diffPct))} below</span>`:diffPct>2?`<span class="badge badge-green">▲ ${pc(diffPct)} above</span>`:`<span class="badge badge-amber">At avg</span>`;
+    const rateClass=diffPct<-2?'below-avg':diffPct>2?'above-avg':'';
+    h+=`<tr><td>${p.name}</td><td class="num">${fNInt(p.q)}</td><td class="num">${fmt(p.v)}</td><td class="num ${rateClass}">${fRate(p.rate)}</td><td class="num ${rateClass}">${diffPct>0?'+':''}${diffPct.toFixed(1)}%</td><td>${badge}</td></tr>`;
+  });
+  h+=`<tr class="total-row"><td>Group Average</td><td class="num">${fNInt(it.qty)}</td><td class="num">${fmt(it.sales)}</td><td class="num">${fRate(avgRate)}</td><td></td><td></td></tr>`;
+  h+=`</table></div></div>`;
+  document.getElementById('rateDetail').innerHTML=h;
+  document.getElementById('rateDetail').scrollIntoView({behavior:'smooth'});
+  window._lastRateIdx=idx;
+}
+
+function dlRateDetail(idx){
+  const it=window._iList[idx];if(!it)return;
+  const avgRate=it.avgRate;
+  const parties=Object.entries(it.parties).map(([k,d])=>({name:window._pCanon[k]||k,v:d.v,q:d.q,rate:d.q>0?d.v/d.q:0})).sort((a,b)=>b.v-a.v);
+  const d=[
+    ['Rate Analysis: '+it.name+' ('+it.uom+')'],
+    ['Prepared by: CA Akash Agarwal | Maars & Associates, Chartered Accountants'],
+    ['Report Date: '+new Date().toLocaleDateString('en-IN')],[],
+    ['Party','Qty Sold',it.uom,'Total Value (₹)','Party Rate (₹/'+it.uom+')','Group Avg Rate (₹/'+it.uom+')','Variance (₹)','Variance %','Status']
+  ];
+  parties.forEach(p=>{
+    const diff=p.rate-avgRate;const diffPct=avgRate>0?diff/avgRate*100:0;
+    d.push([p.name,p.q,p.v,Math.round(p.rate*100)/100,Math.round(avgRate*100)/100,Math.round(diff*100)/100,Math.round(diffPct*100)/100,diffPct<-2?'Below Avg':diffPct>2?'Above Avg':'At Avg']);
+  });
+  d.push(['GROUP AVERAGE',it.qty,it.sales,Math.round(avgRate*100)/100,'—','—','—','—']);
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(d);
+  // Style header row
+  ws['!cols']=[{wch:40},{wch:12},{wch:16},{wch:16},{wch:16},{wch:16},{wch:12},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,ws,'Rate Analysis');
+  XLSX.writeFile(wb,'Rate_'+it.name.substring(0,20)+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// ===== RETURNS TAB =====
+function renderReturnsTab(){
+  const C=_C;
+  const highReturns=C.pList.filter(p=>p.sales>0&&p.returns>0&&(p.returns/p.sales*100)>5).sort((a,b)=>(b.returns/b.sales)-(a.returns/a.sales));
+  let rt=`<div class="kpi-row">
+  <div class="kpi red"><div class="kpi-label">Total Returns</div><div class="kpi-value">${fmt(C.totalReturns)}</div><div class="kpi-sub">${C.negCount} credit note / return entries</div></div>
+  <div class="kpi"><div class="kpi-label">Return Rate</div><div class="kpi-value">${pc(C.grossSales>0?C.totalReturns/C.grossSales*100:0)}</div><div class="kpi-sub">% of gross billed value</div></div>
+  <div class="kpi amber"><div class="kpi-label">High Return Parties</div><div class="kpi-value">${highReturns.length}</div><div class="kpi-sub">Return rate > 5% of their sales</div></div></div>`;
+
+  if(highReturns.length){
+    rt+=`<div class="section-title">Parties with Return Rate > 5%</div>
+    <div class="section-note">Consistent high return rates may indicate quality issues, packing problems, or mis-specification of orders. These accounts warrant a root-cause review.</div>`;
+    rt+=`<div class="table-wrap"><table>
+    <tr><th>Party</th><th class="num">Gross Sales</th><th class="num">Returns</th><th class="num">Return %</th></tr>`;
+    highReturns.forEach(p=>{rt+=`<tr><td>${p.name}</td><td class="num">${fmt(p.sales)}</td><td class="num">${fmt(p.returns)}</td><td class="num"><span class="badge badge-red">${pc(p.returns/p.sales*100)}</span></td></tr>`});
+    rt+=`</table></div>`;
+  }
+  rt+=`<div class="section-title">All Parties with Returns</div>
+  <div class="table-wrap"><table>
+  <tr><th>Party</th><th class="num">Gross Sales</th><th class="num">Returns</th><th class="num">Net</th><th class="num">Return %</th></tr>`;
+  C.pList.filter(p=>p.returns>0).sort((a,b)=>(b.returns/b.sales)-(a.returns/a.sales)).forEach(p=>{
+    rt+=`<tr><td>${p.name}</td><td class="num">${fmt(p.sales)}</td><td class="num">${fmt(p.returns)}</td><td class="num">${fmt(p.net)}</td><td class="num">${pc(p.returns/p.sales*100)}</td></tr>`;
+  });
+  rt+=`</table></div>`;
+  document.getElementById('pnl-returns').innerHTML=rt;
+}
+
+// ===== INTERACTIVE FUNCTIONS =====
+function showItemParties(idx){
+  const it=window._iList[idx];if(!it)return;window._lastItemIdx=idx;
+  const pArr=Object.entries(it.parties).map(([k,d])=>({name:window._pCanon[k]||k,v:d.v,q:d.q,rate:d.q>0?d.v/d.q:0})).sort((a,b)=>b.v-a.v).slice(0,10);
+  const avgRate=it.avgRate;
+  let h=`<div class="detail-box"><h4>${it.name} — Top ${Math.min(10,pArr.length)} Buyers · Avg Rate: ${fRate(avgRate)}/${it.uom}
+  <button class="btn-sm gold" onclick="dlItemParties()" style="margin-left:12px;font-size:.75rem">📥 Download</button></h4>
+  <div class="table-wrap"><table>
+  <tr><th>Party</th><th class="num">Qty (${it.uom})</th><th class="num">Value</th><th class="num">Avg Rate</th><th>vs Group</th></tr>`;
+  pArr.forEach(p=>{
+    const diffPct=avgRate>0?(p.rate-avgRate)/avgRate*100:0;
+    const badge=diffPct<-2?`<span class="badge badge-red">▼ ${pc(Math.abs(diffPct))}</span>`:diffPct>2?`<span class="badge badge-green">▲ ${pc(diffPct)}</span>`:`<span class="badge badge-amber">avg</span>`;
+    h+=`<tr><td>${p.name}</td><td class="num">${fNInt(p.q)}</td><td class="num">${fmt(p.v)}</td><td class="num ${diffPct<-2?'below-avg':diffPct>2?'above-avg':''}">${fRate(p.rate)}</td><td>${badge}</td></tr>`;
+  });
+  h+=`</table></div></div>`;
+  document.getElementById('itemDetail').innerHTML=h;
+  document.getElementById('itemDetail').scrollIntoView({behavior:'smooth'});
+}
+
+function dlItemParties(){
+  const it=window._iList[window._lastItemIdx];if(!it)return;
+  const avgRate=it.avgRate;
+  const pArr=Object.entries(it.parties).map(([k,d])=>({name:window._pCanon[k]||k,v:d.v,q:d.q,rate:d.q>0?d.v/d.q:0})).sort((a,b)=>b.v-a.v);
+  const d=[
+    ['Product: '+it.name+' ('+it.uom+')'],
+    ['Prepared by: CA Akash Agarwal | Maars & Associates, Chartered Accountants'],
+    ['Report Date: '+new Date().toLocaleDateString('en-IN')],[],
+    ['Party','Qty ('+it.uom+')','Value (₹)','Avg Rate (₹/'+it.uom+')','Group Avg Rate','Variance %']
+  ];
+  pArr.forEach(p=>{d.push([p.name,p.q,p.v,Math.round(p.rate*100)/100,Math.round(avgRate*100)/100,avgRate>0?Math.round((p.rate-avgRate)/avgRate*10000)/100:0])});
+  d.push(['Group Average',it.qty,it.sales,Math.round(avgRate*100)/100,'—','—']);
+  const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet(d);ws['!cols']=[{wch:40},{wch:12},{wch:16},{wch:16},{wch:16},{wch:12}];XLSX.utils.book_append_sheet(wb,ws,'Buyers');XLSX.writeFile(wb,'Product_'+it.name.substring(0,20)+'.xlsx');
+}
+
+function doPS(){
+  const q=(document.getElementById('sSearch')?.value||'').trim().toUpperCase();if(!q){clrPS();return}
+  const ppm=window._ppMap||{};const matches=Object.keys(ppm).filter(k=>k.includes(q));
+  const det=document.getElementById('ppDetail');
+  if(!matches.length){det.innerHTML='<p style="color:var(--red);padding:8px">No party found matching "'+q+'".</p>';fPT(q);return}
+  let h='';
+  matches.forEach(key=>{
+    const rows=ppm[key];const nm=window._pCanon[key]||key;
+    const pm={};rows.forEach(r=>{const pk=r.item+'|||'+r.uom;if(!pm[pk])pm[pk]={q:0,v:0,uom:r.uom,name:r.item};pm[pk].q+=r.qty;pm[pk].v+=r.value});
+    const prods=Object.entries(pm).sort((a,b)=>b[1].v-a[1].v);
+    const tv=prods.reduce((s,p)=>s+p[1].v,0),tq=prods.reduce((s,p)=>s+p[1].q,0);
+    h+=`<div class="detail-box"><h4>${nm} <button class="btn-sm gold" onclick="dlPartyDetail('${key}')" style="margin-left:12px;font-size:.75rem">📥 Download</button></h4>
+    <div class="table-wrap"><table><tr><th>Product</th><th>UOM</th><th class="num">Qty</th><th class="num">Avg Rate</th><th class="num">Value</th></tr>`;
+    prods.forEach(([pk,d])=>{const avg=d.q>0?d.v/d.q:0;h+=`<tr><td>${d.name}</td><td>${d.uom}</td><td class="num">${fNInt(d.q)}</td><td class="num">${fRate(avg)}</td><td class="num">${fmt(d.v)}</td></tr>`});
+    h+=`<tr class="total-row"><td>Total</td><td></td><td class="num">${fNInt(tq)}</td><td class="num">${tq>0?fRate(tv/tq):''}</td><td class="num">${fmt(tv)}</td></tr>`;
+    h+=`</table></div></div>`;
+  });
+  det.innerHTML=h;fPT(q);
+  // Subtotal in party table
+  const tbl=document.getElementById('sPTbl');if(tbl){
+    tbl.querySelectorAll('.search-subtotal').forEach(r=>r.remove());
+    const matchedPL=(window._pList||[]).filter(p=>matches.includes(normP(p.name)));
+    if(matchedPL.length>0){
+      const sg=matchedPL.reduce((s,p)=>s+p.sales,0),sr=matchedPL.reduce((s,p)=>s+p.returns,0),sn=matchedPL.reduce((s,p)=>s+p.net,0);
+      const row=document.createElement('tr');row.className='total-row search-subtotal';
+      row.innerHTML=`<td>Subtotal — "${q}" (${matchedPL.length} matched)</td><td class="num">${fmt(sg)}</td><td class="num">${fmt(sr)}</td><td class="num">${fmt(sn)}</td><td></td><td></td>`;
+      const totalRows=tbl.querySelectorAll('.total-row:not(.search-subtotal)');
+      if(totalRows.length>0)tbl.tBodies[0].insertBefore(row,totalRows[0]);else tbl.tBodies[0].appendChild(row);
+    }
+  }
+}
+
+function dlPartyDetail(key){
+  const ppm=window._ppMap||{};const rows=ppm[key];if(!rows)return;
+  const nm=window._pCanon[key]||key;
+  const pm={};rows.forEach(r=>{const pk=r.item+'|||'+r.uom;if(!pm[pk])pm[pk]={q:0,v:0,uom:r.uom,name:r.item};pm[pk].q+=r.qty;pm[pk].v+=r.value});
+  const d=[
+    ['Party Sales Detail: '+nm],['Prepared by: CA Akash Agarwal | Maars & Associates, Chartered Accountants'],
+    ['Report Date: '+new Date().toLocaleDateString('en-IN')],[],
+    ['Product','UOM','Qty','Avg Rate (₹/UOM)','Total Value (₹)']
+  ];
+  Object.entries(pm).sort((a,b)=>b[1].v-a[1].v).forEach(([pk,x])=>{d.push([x.name,x.uom,x.q,x.q>0?Math.round(x.v/x.q*100)/100:0,x.v])});
+  const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet(d);ws['!cols']=[{wch:40},{wch:8},{wch:14},{wch:16},{wch:16}];XLSX.utils.book_append_sheet(wb,ws,'Party Detail');XLSX.writeFile(wb,'Party_'+nm.substring(0,20)+'.xlsx');
+}
+
+function clrPS(){
+  document.getElementById('sSearch').value='';
+  document.getElementById('ppDetail').innerHTML='';
+  document.getElementById('concDetail').innerHTML='';
+  document.querySelectorAll('#sPTbl .p-row').forEach(r=>r.style.display='');
+  document.querySelectorAll('#concK .kpi').forEach(k=>k.classList.remove('selected'));
+  document.querySelectorAll('.search-subtotal').forEach(r=>r.remove());
+}
+function fPT(q){document.querySelectorAll('#sPTbl .p-row').forEach(r=>{r.style.display=r.children[0].textContent.toUpperCase().includes(q)?'':'none'})}
+
+function fConc(type){
+  document.querySelectorAll('#concK .kpi').forEach(k=>{k.classList.toggle('selected',k.dataset.c===type)});
+  document.getElementById('ppDetail').innerHTML='';document.getElementById('sSearch').value='';
+  const pl=window._pList||[],ppm=window._ppMap||[];const rows=document.querySelectorAll('#sPTbl .p-row');
+  let list=[],label='';
+  if(type==='top5'){list=pl.slice(0,5);label='Top 5 Customers'}
+  else if(type==='top10'){list=pl.slice(0,10);label='Top 10 Customers'}
+  else if(type==='top20'){list=pl.slice(0,20);label='Top 20 Customers'}
+  else if(type==='onetime'){list=pl.filter(p=>p.invCount===1);label='One-Time Buyers'}
+  const vs=new Set(list.map(p=>p.name));rows.forEach(r=>{r.style.display=vs.has(r.children[0].textContent)?'':'none'});
+  if(!list.length){document.getElementById('concDetail').innerHTML='';return}
+  let h=`<div class="filter-summary">${label}: ${list.length} parties <button class="btn-sm gold" onclick="dlConc('${type}')" style="margin-left:12px;font-size:.75rem">📥 Download</button></div>`;
+  h+=`<div class="table-wrap"><table><tr><th>Party</th><th>Top Products</th><th class="num">Qty</th><th class="num">Avg Rate</th><th class="num">Net Sales</th></tr>`;
+  list.forEach(p=>{
+    const nk=normP(p.name);const prods=ppm[nk]||[];
+    const pm={};let tq=0,tv=0;prods.forEach(r=>{if(!pm[r.item])pm[r.item]={q:0,v:0};pm[r.item].q+=r.qty;pm[r.item].v+=r.value;tq+=r.qty;tv+=r.value});
+    const topP=Object.entries(pm).sort((a,b)=>b[1].v-a[1].v).slice(0,3).map(([n])=>n).join(', ');
+    const avgR=tq>0?tv/tq:0;
+    h+=`<tr><td title="${p.name}">${p.name.substring(0,40)}</td><td style="font-size:.72rem;white-space:normal;max-width:250px">${topP.substring(0,60)}</td><td class="num">${fNInt(tq)}</td><td class="num">${fRate(avgR)}</td><td class="num">${fmt(p.net)}</td></tr>`;
+  });
+  h+=`<tr class="total-row"><td>Total</td><td></td><td></td><td></td><td class="num">${fmt(list.reduce((s,p)=>s+p.net,0))}</td></tr></table></div>`;
+  document.getElementById('concDetail').innerHTML=h;
+}
+
+function dlConc(type){
+  const pl=window._pList||[],ppm=window._ppMap||{};let list=[];
+  if(type==='top5')list=pl.slice(0,5);else if(type==='top10')list=pl.slice(0,10);else if(type==='top20')list=pl.slice(0,20);else if(type==='onetime')list=pl.filter(p=>p.invCount===1);
+  const d=[
+    ['Customer Concentration: '+(type==='onetime'?'One-Time Buyers':'Top '+type.replace('top',''))],
+    ['Prepared by: CA Akash Agarwal | Maars & Associates, Chartered Accountants'],
+    ['Report Date: '+new Date().toLocaleDateString('en-IN')],[],
+    ['Party','Top Products (by revenue)','Gross Sales (₹)','Returns (₹)','Net Sales (₹)','Invoice Count']
+  ];
+  list.forEach(p=>{
+    const nk=normP(p.name);const prods=ppm[nk]||[];
+    const pm={};prods.forEach(r=>{if(!pm[r.item])pm[r.item]={v:0};pm[r.item].v+=r.value});
+    const topP=Object.entries(pm).sort((a,b)=>b[1].v-a[1].v).slice(0,5).map(([n])=>n).join(', ');
+    d.push([p.name,topP,p.sales,p.returns,p.net,p.invCount]);
+  });
+  const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet(d);ws['!cols']=[{wch:40},{wch:50},{wch:16},{wch:14},{wch:14},{wch:12}];XLSX.utils.book_append_sheet(wb,ws,type);XLSX.writeFile(wb,'Concentration_'+type+'.xlsx');
+}
+
+// ===== SORT =====
+function sortT(id,ci){
+  const t=document.getElementById(id);if(!t)return;
+  const tb=t.tBodies[0]||t;
+  const rows=Array.from(tb.querySelectorAll('tr')).filter(r=>r.querySelector('td')&&!r.classList.contains('total-row'));
+  const th=t.querySelectorAll('th')[ci];const a=th.dataset.sort!=='asc';th.dataset.sort=a?'asc':'desc';
+  rows.sort((x,y)=>{
+    let va=x.children[ci]?.textContent.trim()||'',vb=y.children[ci]?.textContent.trim()||'';
+    const na=parseFloat(va.replace(/[₹,%CLr\s▲▼]/g,'')),nb=parseFloat(vb.replace(/[₹,%CLr\s▲▼]/g,''));
+    if(!isNaN(na)&&!isNaN(nb))return a?na-nb:nb-na;
+    return a?va.localeCompare(vb):vb.localeCompare(va);
+  });
+  rows.forEach(r=>tb.appendChild(r));
+  tb.querySelectorAll('.total-row').forEach(r=>tb.appendChild(r));
+}
+
+// ===== EXPORTS =====
+// ===== EXCEL COLOUR HELPERS =====
+function xlCell(v,style){return{v,s:style}}
+
+// Pre-built cell styles (XLSX doesn't support rich styles in community edition,
+// so we use background fill via s property — works in SheetJS pro)
+// For community edition, we add conditional formatting via cell comments and 
+// use opinionated row alternation + bold headers approach
+function makeWB(){return XLSX.utils.book_new()}
+function freezeTopRow(ws,row){ws['!freeze']={xSplit:0,ySplit:row||1,topLeftCell:'A'+(((row||1)+1))}}
+
+function applySheetStyles(ws,headerRow,numRows,numCols){
+  // Freeze header rows
+  ws['!freeze']={xSplit:0,ySplit:headerRow};
+  // AutoFilter on header
+  const range=XLSX.utils.decode_range(ws['!ref']||'A1');
+  ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:headerRow-1,c:0},e:{r:headerRow-1,c:range.e.c}})};
+}
+
+function addMetaRows(ws,title,today,period){
+  // Add meta at top — already embedded in data rows in our approach
+  // Mark first row as title
+  const a1=ws['A1'];if(a1)a1.s={font:{bold:true,sz:14,color:{rgb:'1A2744'}}};
+}
+
+// ===== FULL ANALYSIS EXPORT =====
+function exportXL(){
+  const C=_C;const wb=XLSX.utils.book_new();
+  const today=new Date().toLocaleDateString('en-IN');
+  const S=window._rawRows||[];
+
+  // --- SHEET 1: SUMMARY ---
+  const summH=[['Metric','Value','Benchmark / Note']];
+  summH.push(['SALES SUMMARY — '+C.dateRangeStr,'','']);
+  summH.push(['Prepared by','CA Akash Agarwal','']);
+  summH.push(['Firm','Maars & Associates, Chartered Accountants','']);
+  summH.push(['Report Date',today,'']);
+  summH.push(['','','']);
+  summH.push(['Net Sales',C.totalSales,'After credit notes / returns']);
+  summH.push(['Gross Sales (Billed)',C.grossSales,'Before deductions']);
+  summH.push(['Total Returns / Credit Notes',C.totalReturns,C.grossSales>0?(Math.round(C.totalReturns/C.grossSales*1000)/10)+'% of gross':0]);
+  summH.push(['Total Line Items (Entries)',C.totalRows,'All rows incl. returns']);
+  summH.push(['Unique Parties',C.uPC,'Case-insensitive deduplicated']);
+  summH.push(['Unique Products / SKUs',C.iList.length,'']);
+  summH.push(['One-Time Buyers',C.oneTime.length,(Math.round(C.oneTime.length/C.pList.length*1000)/10)+'% of all parties']);
+  summH.push(['Parties with Below-Avg Rates',C.belowAvgParties.length,'Review Rate Intelligence sheet']);
+  const wsSumm=XLSX.utils.aoa_to_sheet(summH);
+  wsSumm['!cols']=[{wch:35},{wch:20},{wch:40}];
+  applySheetStyles(wsSumm,1,summH.length,3);
+  XLSX.utils.book_append_sheet(wb,wsSumm,'Summary');
+
+  // --- SHEET 2: FULL SALES REGISTER (with filter) ---
+  const regH=[['Date','Unit','Invoice No.','Party Name','Product','Qty','UOM','Rate (₹/UOM)','Value (₹)']];
+  S.forEach(r=>{
+    const dt=r.date?r.date.toLocaleDateString('en-IN'):'';
+    regH.push([dt,r.unit,r.invoice,r.party,r.item,r.qty,r.uom,r.value!==0&&r.qty>0?Math.round(r.value/r.qty*100)/100:0,r.value]);
+  });
+  const wsReg=XLSX.utils.aoa_to_sheet(regH);
+  wsReg['!cols']=[{wch:12},{wch:10},{wch:20},{wch:40},{wch:35},{wch:12},{wch:6},{wch:14},{wch:16}];
+  applySheetStyles(wsReg,1,regH.length,9);
+  XLSX.utils.book_append_sheet(wb,wsReg,'Full Sales Register');
+
+  // --- SHEET 3: WEEKLY TREND ---
+  const wkD=[['WEEKLY SALES TREND — '+C.dateRangeStr,'','',''],['Week','Period','Net Sales (₹)','Transactions']];
+  const wkKeys=Object.keys(C.wkMap).sort((a,b)=>{const an=parseInt(a.split('|')[0].replace('W',''));const bn=parseInt(b.split('|')[0].replace('W',''));return an-bn;});
+  wkKeys.forEach(k=>{const d=C.wkMap[k];wkD.push([d.label,d.weekStart?d.weekStart.toLocaleDateString('en-IN'):'',d.s,d.txns])});
+  const wkTotal=wkD.slice(2).reduce((s,r)=>s+(+r[2]||0),0);
+  wkD.push(['TOTAL','',wkTotal,wkD.slice(2).reduce((s,r)=>s+(+r[3]||0),0)]);
+  const wsWk=XLSX.utils.aoa_to_sheet(wkD);wsWk['!cols']=[{wch:25},{wch:14},{wch:16},{wch:14}];
+  applySheetStyles(wsWk,2,wkD.length,4);
+  XLSX.utils.book_append_sheet(wb,wsWk,'Weekly Trend');
+
+  // --- SHEET 4: PRODUCT-WISE REVENUE ---
+  const itD=[['PRODUCT-WISE REVENUE ANALYSIS — '+C.dateRangeStr,'','','','','','',''],
+    ['Product','UOM','Revenue (₹)','Revenue %','Total Qty','Avg Rate (₹/UOM)','Invoice Count','Unique Buyers']];
+  C.iList.forEach(i=>{itD.push([i.name,i.uom,i.sales,Math.round(i.sales/C.totalSales*10000)/100,i.qty,Math.round(i.avgRate*100)/100,i.invCount,Object.keys(i.parties).length])});
+  itD.push(['GRAND TOTAL','',C.iList.reduce((s,i)=>s+i.sales,0),100,'','','','']);
+  const wsIt=XLSX.utils.aoa_to_sheet(itD);wsIt['!cols']=[{wch:38},{wch:6},{wch:16},{wch:12},{wch:14},{wch:16},{wch:14},{wch:14}];
+  applySheetStyles(wsIt,2,itD.length,8);
+  XLSX.utils.book_append_sheet(wb,wsIt,'Product Revenue');
+
+  // --- SHEET 5: PARTY-WISE SUMMARY ---
+  const pD=[['PARTY-WISE SALES SUMMARY — '+C.dateRangeStr,'','','','',''],
+    ['Party Name','Gross Sales (₹)','Returns (₹)','Net Sales (₹)','Invoice Count','Products Bought']];
+  C.pList.forEach(p=>{pD.push([p.name,p.sales,p.returns||0,p.net,p.invCount,p.itemCount])});
+  pD.push(['GRAND TOTAL',C.pList.reduce((s,p)=>s+p.sales,0),C.pList.reduce((s,p)=>s+p.returns,0),C.totalSales,'','']);
+  const wsPty=XLSX.utils.aoa_to_sheet(pD);wsPty['!cols']=[{wch:45},{wch:16},{wch:14},{wch:16},{wch:14},{wch:16}];
+  applySheetStyles(wsPty,2,pD.length,6);
+  XLSX.utils.book_append_sheet(wb,wsPty,'Party Summary');
+
+  // --- SHEET 6: UNIQUE BUYERS LIST (DETAILED) ---
+  // Build comprehensive buyer list with product-wise breakdown
+  const ubD=[['UNIQUE BUYERS LIST — '+C.dateRangeStr,'','','','','','','','','','','',''],
+    ['Buyer Rank','Party Name','Total Revenue (₹)','Gross Sales (₹)','Returns (₹)','Total Qty','Invoice Count','Product Count','Products Purchased','Avg Invoice Value (₹)','First Purchase','Last Purchase','Buyer Classification']];
+  
+  // Prepare buyer data with additional metrics
+  const buyerList=C.pList.map((p,idx)=>{
+    const nk=normP(p.name);
+    const prodRecs=window._ppMap[nk]||[];
+    const prodNames=p.itemCount>0?[...new Set(prodRecs.map(r=>r.item))].slice(0,5).join(', ')+(p.itemCount>5?' +'+Math.max(0,p.itemCount-5)+' more':''):'';
+    const avgInv=p.invCount>0?Math.round(p.net/p.invCount*100)/100:0;
+    
+    // Determine classification
+    let classification='Regular';
+    if(p.invCount===1)classification='One-Time';
+    else if(p.net>C.totalSales*0.05)classification='Strategic';
+    else if(p.net<C.totalSales*0.01)classification='Small';
+    
+    return {
+      rank:idx+1,
+      name:p.name,
+      revenue:p.net,
+      gross:p.sales,
+      returns:p.returns||0,
+      qty:p.qty||0,
+      invCount:p.invCount,
+      productCount:p.itemCount,
+      products:prodNames,
+      avgInv:avgInv,
+      classification:classification,
+      data:p
+    };
+  });
+  
+  buyerList.forEach(b=>{
+    ubD.push([
+      b.rank,
+      b.name,
+      b.revenue,
+      b.gross,
+      b.returns,
+      b.qty,
+      b.invCount,
+      b.productCount,
+      b.products,
+      b.avgInv,
+      '', // First purchase (placeholder - can be enhanced with date tracking)
+      '', // Last purchase (placeholder - can be enhanced with date tracking)
+      b.classification
+    ]);
+  });
+  
+  // Summary totals row
+  ubD.push([
+    '',
+    'TOTAL ('+C.pList.length+' Buyers)',
+    C.totalSales,
+    C.grossSales,
+    C.totalReturns,
+    buyerList.reduce((s,b)=>s+b.qty,0),
+    buyerList.reduce((s,b)=>s+b.invCount,0),
+    '',
+    '',
+    C.totalSales/buyerList.reduce((s,b)=>s+b.invCount,0),
+    '',
+    '',
+    ''
+  ]);
+  
+  const wsUB=XLSX.utils.aoa_to_sheet(ubD);
+  wsUB['!cols']=[
+    {wch:8},{wch:45},{wch:18},{wch:16},{wch:14},{wch:12},{wch:14},{wch:14},{wch:35},{wch:16},{wch:14},{wch:14},{wch:16}
+  ];
+  applySheetStyles(wsUB,2,ubD.length,13);
+  XLSX.utils.book_append_sheet(wb,wsUB,'Unique Buyers List');
+
+  // --- SHEET 6B: BUYER-PRODUCT ANALYSIS (DETAILED BREAKDOWN) ---
+  // Product-wise breakdown for each buyer - shows what each buyer bought and in what quantity/value
+  const bpD=[['BUYER-PRODUCT ANALYSIS — '+C.dateRangeStr,'','','','',''],
+    ['Party Name','Product Name','UOM','Quantity','Revenue (₹)','Avg Rate (₹/UOM)']];
+  
+  C.pList.forEach(p=>{
+    const nk=normP(p.name);
+    const prodRecs=window._ppMap[nk]||[];
+    
+    // Group by product
+    const prodMap={};
+    prodRecs.forEach(r=>{
+      if(!prodMap[r.item]){
+        prodMap[r.item]={qty:0,val:0,uom:r.uom};
+      }
+      prodMap[r.item].qty+=r.qty;
+      prodMap[r.item].val+=r.value;
+    });
+    
+    // Sort products by value descending
+    const sortedProds=Object.keys(prodMap).sort((a,b)=>prodMap[b].val-prodMap[a].val);
+    
+    sortedProds.forEach((prod,idx)=>{
+      const pm=prodMap[prod];
+      const avgRate=pm.qty>0?Math.round(pm.val/pm.qty*100)/100:0;
+      bpD.push([
+        idx===0?p.name:'',
+        prod,
+        pm.uom,
+        pm.qty,
+        Math.round(pm.val),
+        avgRate
+      ]);
+    });
+    
+    // Subtotal row for this buyer
+    const buyerSubtotal=Object.values(prodMap).reduce((s,pm)=>s+pm.val,0);
+    const buyerQtyTotal=Object.values(prodMap).reduce((s,pm)=>s+pm.qty,0);
+    bpD.push([
+      '—',
+      'Buyer Total: '+p.name,
+      '',
+      buyerQtyTotal,
+      Math.round(buyerSubtotal),
+      buyerSubtotal>0&&buyerQtyTotal>0?Math.round(buyerSubtotal/buyerQtyTotal*100)/100:0
+    ]);
+    bpD.push(['','','','','','']); // Blank row separator
+  });
+  
+  const wsBP=XLSX.utils.aoa_to_sheet(bpD);
+  wsBP['!cols']=[{wch:45},{wch:38},{wch:8},{wch:14},{wch:16},{wch:16}];
+  applySheetStyles(wsBP,2,bpD.length,6);
+  XLSX.utils.book_append_sheet(wb,wsBP,'Buyer-Product Analysis');
+
+  // --- SHEET 7: PARTY × PRODUCT MATRIX ---
+  // Build pivot: party rows, product columns for top 15 products
+  const top15prods=C.iList.slice(0,15);
+  const pxpHeader=['Party Name',...top15prods.map(i=>i.name+'\n('+i.uom+')'),'Others','Total'];
+  const pxpRows=[['PARTY × PRODUCT REVENUE MATRIX (Top 15 Products) — '+C.dateRangeStr,...Array(pxpHeader.length-1).fill('')],pxpHeader];
+  C.pList.slice(0,50).forEach(p=>{// top 50 parties
+    const nk=normP(p.name);const prods=window._ppMap[nk]||[];
+    const prodVals={};prods.forEach(r=>{if(!prodVals[r.item])prodVals[r.item]=0;prodVals[r.item]+=r.value});
+    const top15vals=top15prods.map(i=>prodVals[i.name]||0);
+    const top15total=top15vals.reduce((s,v)=>s+v,0);
+    const othersVal=p.net-top15total;
+    pxpRows.push([p.name,...top15vals,othersVal>0?othersVal:0,p.net]);
+  });
+  // Column totals row
+  const colTotals=top15prods.map(i=>C.pList.slice(0,50).reduce((s,p)=>{const nk=normP(p.name);const prods=(window._ppMap[nk]||[]).filter(r=>r.item===i.name);return s+prods.reduce((ss,r)=>ss+r.value,0)},0));
+  pxpRows.push(['TOTAL (Top 50 Parties)',...colTotals,0,C.pList.slice(0,50).reduce((s,p)=>s+p.net,0)]);
+  const wsPxP=XLSX.utils.aoa_to_sheet(pxpRows);
+  wsPxP['!cols']=[{wch:40},...top15prods.map(()=>({wch:14})),{wch:12},{wch:14}];
+  applySheetStyles(wsPxP,2,pxpRows.length,pxpHeader.length);
+  XLSX.utils.book_append_sheet(wb,wsPxP,'Party×Product');
+
+  // --- SHEET 8: BELOW-AVG BUYERS DIRECT REPORT ---
+  if(C.belowAvgParties.length){
+    const baD=[['BELOW AVERAGE RATE BUYERS — DIRECT REPORT','','','','','','','','','',''],
+      ['Definition: Parties billed >2% below the product group average rate. Sorted by deepest discount.','','','','','','','','','',''],
+      [''],
+      ['Party Name','Product','UOM','Party Rate\n(₹/UOM)','Group Avg\n(₹/UOM)','Rate Var\n(₹/UOM)','Discount\n%','Qty Sold','Revenue\nBilled (₹)','Revenue at\nGroup Avg (₹)','Unrealised\nRevenue (₹)']];
+    C.belowAvgParties.forEach(p=>{
+      p.items.sort((a,b)=>a.pctVsGroup-b.pctVsGroup).forEach((it,idx)=>{
+        const unreal=Math.round(it.qty*(it.groupRate-it.partyRate));
+        baD.push([idx===0?p.name:'↳ (same party)',it.product,it.uom,Math.round(it.partyRate*100)/100,Math.round(it.groupRate*100)/100,Math.round((it.partyRate-it.groupRate)*100)/100,Math.round(Math.abs(it.pctVsGroup)*10)/10,it.qty,Math.round(it.value),Math.round(it.qty*it.groupRate),unreal]);
+      });
+      baD.push(['','','','','','','','','','','']); // blank row between parties
+    });
+    const totalUnreal=Math.round(C.belowAvgParties.reduce((s,p)=>s+p.items.reduce((ss,it)=>ss+it.qty*(it.groupRate-it.partyRate),0),0));
+    baD.push(['TOTAL UNREALISED REVENUE (aggregate across all below-avg parties & products)','','','','','','','','','',totalUnreal]);
+    const wsBA=XLSX.utils.aoa_to_sheet(baD);
+    wsBA['!cols']=[{wch:42},{wch:32},{wch:6},{wch:14},{wch:14},{wch:14},{wch:10},{wch:12},{wch:16},{wch:16},{wch:16}];
+    applySheetStyles(wsBA,4,baD.length,11);
+    XLSX.utils.book_append_sheet(wb,wsBA,'Below-Avg Buyers');
+  }
+
+  XLSX.writeFile(wb,'Sales_Analysis_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// ===== RATE ANALYSIS EXPORT (standalone) =====
+function exportRateReport(){
+  const C=_C;const wb=XLSX.utils.book_new();const today=new Date().toLocaleDateString('en-IN');
+
+  // Product avg rate sheet
+  const rD=[['PRODUCT-WISE AVERAGE SELLING RATE ANALYSIS','','','','',''],
+    ['Period: '+C.dateRangeStr+'  |  Prepared by: CA Akash Agarwal, Maars & Associates, Chartered Accountants','','','','',''],[''],
+    ['Product','UOM','Group Avg Rate (₹)','Total Qty Sold','Total Revenue (₹)','Unique Buyers']];
+  C.iList.filter(i=>i.avgRate>0).forEach(i=>{rD.push([i.name,i.uom,Math.round(i.avgRate*100)/100,i.qty,i.sales,Object.keys(i.parties).length])});
+  const wsR=XLSX.utils.aoa_to_sheet(rD);wsR['!cols']=[{wch:42},{wch:6},{wch:18},{wch:16},{wch:16},{wch:14}];
+  applySheetStyles(wsR,4,rD.length,6);
+  XLSX.utils.book_append_sheet(wb,wsR,'Product Avg Rates');
+
+  // Per-product party rate breakdown
+  C.iList.slice(0,20).forEach(prod=>{
+    if(Object.keys(prod.parties).length<2)return;
+    const shName=prod.name.substring(0,28).replace(/[\/\\\*\?\:\[\]]/g,'').trim();
+    const avgRate=prod.avgRate;
+    const pRows=[['RATE ANALYSIS: '+prod.name+' ('+prod.uom+')','','','','',''],
+      ['Group Average Rate: ₹'+Math.round(avgRate*100)/100+'/'+prod.uom,'','','','',''],[''],
+      ['Party Name','Qty ('+prod.uom+')','Value (₹)','Party Rate (₹)','vs Group Avg (₹)','vs Group Avg %']];
+    Object.entries(prod.parties).map(([k,d])=>({name:window._pCanon[k]||k,v:d.v,q:d.q,rate:d.q>0?d.v/d.q:0})).sort((a,b)=>b.v-a.v).forEach(p=>{
+      const diff=p.rate-avgRate;const diffPct=avgRate>0?diff/avgRate*100:0;
+      pRows.push([p.name,p.q,p.v,Math.round(p.rate*100)/100,Math.round(diff*100)/100,Math.round(diffPct*100)/100]);
+    });
+    pRows.push(['GROUP AVERAGE',prod.qty,prod.sales,Math.round(avgRate*100)/100,'','']);
+    const ws=XLSX.utils.aoa_to_sheet(pRows);ws['!cols']=[{wch:40},{wch:14},{wch:16},{wch:14},{wch:14},{wch:14}];
+    applySheetStyles(ws,4,pRows.length,6);
+    XLSX.utils.book_append_sheet(wb,ws,shName||('Prod_'+XLSX.utils.book_get_sheet_names(wb).length));
+  });
+
+  // Below-avg buyers combined
+  if(C.belowAvgParties.length){
+    const bD=[['BELOW AVERAGE RATE BUYERS — PRICING REVIEW REQUIRED','','','','','','','','','',''],
+      ['Period: '+C.dateRangeStr,'','','','','','','','','',''],
+      ['Definition: Parties billed at more than 2% below the product group average rate.','','','','','','','','','',''],[''],
+      ['Party','Product','UOM','Party Rate (₹)','Group Avg (₹)','Rate Var (₹)','Discount %','Qty','Revenue (₹)','At Group Avg (₹)','Unrealised (₹)']];
+    C.belowAvgParties.forEach(p=>{
+      p.items.sort((a,b)=>a.pctVsGroup-b.pctVsGroup).forEach((it,idx)=>{
+        const unreal=Math.round(it.qty*(it.groupRate-it.partyRate));
+        bD.push([idx===0?p.name:'',it.product,it.uom,Math.round(it.partyRate*100)/100,Math.round(it.groupRate*100)/100,Math.round((it.partyRate-it.groupRate)*100)/100,Math.round(Math.abs(it.pctVsGroup)*10)/10,it.qty,Math.round(it.value),Math.round(it.qty*it.groupRate),unreal]);
+      });
+      bD.push(Array(11).fill(''));
+    });
+    const totalU=Math.round(C.belowAvgParties.reduce((s,p)=>s+p.items.reduce((ss,it)=>ss+it.qty*(it.groupRate-it.partyRate),0),0));
+    bD.push(['TOTAL UNREALISED',...Array(9).fill(''),totalU]);
+    const wsB=XLSX.utils.aoa_to_sheet(bD);wsB['!cols']=[{wch:40},{wch:30},{wch:6},{wch:14},{wch:14},{wch:14},{wch:10},{wch:12},{wch:14},{wch:14},{wch:14}];
+    applySheetStyles(wsB,5,bD.length,11);
+    XLSX.utils.book_append_sheet(wb,wsB,'Below-Avg Buyers');
+  }
+
+  XLSX.writeFile(wb,'Rate_Analysis_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// Drag & drop
+const fd=document.getElementById('dropSales');
+fd.addEventListener('dragover',e=>{e.preventDefault();fd.classList.add('dragover')});
+fd.addEventListener('dragleave',()=>fd.classList.remove('dragover'));
+fd.addEventListener('drop',e=>{e.preventDefault();fd.classList.remove('dragover');const i=fd.querySelector('input[type="file"]');i.files=e.dataTransfer.files;i.dispatchEvent(new Event('change'))});
+</script>
+</body>
+</html>
